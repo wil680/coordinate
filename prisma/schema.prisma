@@ -1,0 +1,127 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String?
+  image       String?
+  emailVerified DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  accounts    Account[]
+  sessions    Session[]
+  memberships Membership[] 
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String? @db.Text
+  access_token       String? @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum Role {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+enum ReminderMethod {
+  APP
+  EMAIL
+}
+
+model Calendar {
+  id          String       @id @default(cuid())
+  name        String
+  color       String       @default("#7c3aed") // violet-600
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  memberships Membership[]
+  events      Event[]
+}
+
+model Membership {
+  id         String   @id @default(cuid())
+  userId     String
+  calendarId String
+  role       Role     @default(OWNER)
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  calendar Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, calendarId])        // a user appears once per calendar
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  calendarId  String
+  title       String
+  description String?
+  start       DateTime
+  end         DateTime
+  allDay      Boolean   @default(false)
+  location    String?
+  rrule       String?   // recurrence rule (we’ll use later)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  calendar  Calendar  @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  reminders Reminder[]
+
+  @@index([calendarId, start])          // fast range queries for week/day views
+}
+
+model Reminder {
+  id            String          @id @default(cuid())
+  eventId       String
+  method        ReminderMethod  @default(APP)
+  offsetMinutes Int             @default(10) // minutes before start
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
