@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db"
 import { getWeekRange } from "@/lib/dates"
 import WeekView from "@/components/week-view"
 
+
 import NewEventDialog from "@/components/new-event-dialog"
 
 export default async function DashboardPage() {
@@ -35,12 +36,14 @@ export default async function DashboardPage() {
   })
 
   return (
-    <main className="p-6">
+    <main className="p-6 bg-base-200 text-base-content p-6">
     <div className="flex items-center justify-between">
       <h1 className="text-2xl font-semibold mb-4">Week</h1>
       <NewEventDialog />
     </div>
+    <div data-theme="light" className="rounded-box bg-base-0 shawdow-sm p-4">
       <WeekView events={events} weekStart={start} />
+    </div>
     </main>
   )
 }
